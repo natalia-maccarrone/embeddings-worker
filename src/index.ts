@@ -1,18 +1,34 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { InferenceClient } from '@huggingface/inference';
+
+const corsHeaders = {
+	'Access-Control-Allow-Origin': '*',
+	'Access-Control-Allow-Methods': 'POST, OPTIONS',
+	'Access-Control-Allow-Headers': 'Content-Type',
+};
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		return new Response('Hello World!');
+		if (request.method === 'OPTIONS') {
+			return new Response(null, { headers: corsHeaders });
+		}
+
+		if (request.method !== 'POST') {
+			return new Response(JSON.stringify({ error: `${request.method} method not allowed.` }), { status: 405, headers: corsHeaders });
+		}
+
+		try {
+			const data: string[] = await request.json();
+
+			const inferenceClient = new InferenceClient(env.HF_TOKEN);
+
+			const embeddings = await inferenceClient.featureExtraction({
+				model: 'sentence-transformers/all-MiniLM-L6-v2',
+				inputs: data,
+			});
+
+			return new Response(JSON.stringify(embeddings));
+		} catch (error: any) {
+			return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+		}
 	},
 } satisfies ExportedHandler<Env>;
