@@ -1,19 +1,9 @@
 import { InferenceClient } from '@huggingface/inference';
 
-const corsHeaders = {
-	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Methods': 'POST, OPTIONS',
-	'Access-Control-Allow-Headers': 'Content-Type',
-};
-
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: corsHeaders });
-		}
-
 		if (request.method !== 'POST') {
-			return new Response(JSON.stringify({ error: `${request.method} method not allowed.` }), { status: 405, headers: corsHeaders });
+			return new Response(JSON.stringify({ error: `${request.method} method not allowed.` }), { status: 405 });
 		}
 
 		try {
@@ -28,7 +18,7 @@ export default {
 
 			return new Response(JSON.stringify(embeddings));
 		} catch (error: any) {
-			return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 		}
 	},
 } satisfies ExportedHandler<Env>;
